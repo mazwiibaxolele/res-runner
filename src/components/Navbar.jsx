@@ -4,6 +4,7 @@ import { Menu, X, LogOut, Shield, Award, User } from 'lucide-react';
 import { AnimatedLogo } from './ui/AnimatedLogo';
 import { ClayButton } from './ui/ClayButton';
 import { useAuth } from '../context/AuthContext';
+import { isFirebaseEnabled } from '../firebase/config';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,10 +28,19 @@ export function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <AnimatedLogo size="sm" isStatic />
-            <span className="font-heading font-extrabold italic text-2xl tracking-tight">
-              <span className="text-[#0B426B]">Res</span>
-              <span className="text-[#16A34A]">Runner</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-heading font-extrabold italic text-2xl tracking-tight leading-none">
+                <span className="text-[#0B426B]">Res</span>
+                <span className="text-[#16A34A]">Runner</span>
+              </span>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1 border self-start leading-none font-sans uppercase tracking-wider ${
+                isFirebaseEnabled 
+                  ? 'bg-green-50 text-green-700 border-green-200' 
+                  : 'bg-amber-50 text-amber-600 border-amber-200'
+              }`}>
+                {isFirebaseEnabled ? 'Cloud Live' : 'Local Demo'}
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Links */}
