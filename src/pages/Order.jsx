@@ -59,7 +59,7 @@ export function Order() {
     }
 
     const newItem = {
-      id: 'custom_' + Math.floor(1000 + Math.random() * 9000),
+      id: 'custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       name: `${customItemName} (Custom)`,
       price: priceNum
     };

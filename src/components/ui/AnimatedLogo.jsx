@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 
 export function AnimatedLogo({ className, size = 'md', isStatic = false }) {
   const containerRef = useRef(null);
-  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const shadowRef = useRef(null);
 
   const sizes = {
     sm: 'w-10 h-10',
@@ -12,7 +12,7 @@ export function AnimatedLogo({ className, size = 'md', isStatic = false }) {
     xl: 'w-44 h-44',
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (isStatic || !containerRef.current) return;
     const element = containerRef.current;
     const rect = element.getBoundingClientRect();
@@ -23,12 +23,20 @@ export function AnimatedLogo({ className, size = 'md', isStatic = false }) {
     const rx = -(y / (rect.height / 2)) * 18;
     const ry = (x / (rect.width / 2)) * 18;
     
-    setRotate({ x: rx, y: ry });
-  };
+    // Direct DOM manipulation — no React re-render
+    element.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    if (shadowRef.current) {
+      shadowRef.current.style.transform = `translateZ(-15px) scale(${1 - Math.abs(rx) / 100})`;
+    }
+  }, [isStatic]);
 
-  const handleMouseLeave = () => {
-    setRotate({ x: 0, y: 0 });
-  };
+  const handleMouseLeave = useCallback(() => {
+    if (!containerRef.current) return;
+    containerRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    if (shadowRef.current) {
+      shadowRef.current.style.transform = 'translateZ(-15px) scale(1)';
+    }
+  }, []);
 
   return (
     <div 
@@ -42,16 +50,17 @@ export function AnimatedLogo({ className, size = 'md', isStatic = false }) {
       )}
       style={{
         perspective: '1000px',
-        transform: isStatic ? 'none' : `rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`,
+        transform: isStatic ? 'none' : 'rotateX(0deg) rotateY(0deg)',
         transformStyle: 'preserve-3d',
       }}
     >
       {/* 3D Soft Shadow Base */}
       {!isStatic && (
         <div 
+          ref={shadowRef}
           className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4/5 h-2.5 bg-black/10 rounded-[100%] blur-sm transition-all duration-300"
           style={{
-            transform: `translateZ(-15px) scale(${1 - Math.abs(rotate.x) / 100})`,
+            transform: 'translateZ(-15px) scale(1)',
           }}
         ></div>
       )}
@@ -180,14 +189,6 @@ export function AnimatedLogo({ className, size = 'md', isStatic = false }) {
         </g>
       </svg>
       
-      {!isStatic && (
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes wiggle {
-            0%, 100% { transform: rotate(-6deg); }
-            50% { transform: rotate(12deg); }
-          }
-        `}} />
-      )}
     </div>
   );
 }

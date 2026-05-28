@@ -21,31 +21,19 @@ export function RunningAcrossScreen() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [phrase, setPhrase] = useState('');
 
-  const triggerRun = () => {
-    // Collect all items from the mock database categories
-    const allItems = mockCategories.flatMap(cat => cat.items.map(i => i.name));
-    const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
-    
-    // Select a random Wits student residence
-    const randomRes = mockResidences[Math.floor(Math.random() * mockResidences.length)].name.replace(' (Clifton Heights)', '').replace(' Halls of Residence', '');
-    
-    const emoji = getEmoji(randomItem);
-    
-    // Set formatted speech text: Delivering [Item] to [Residence]...
-    setPhrase(`Delivering ${randomItem} to ${randomRes}... ${emoji}`);
-    setIsAnimating(true);
-  };
-
   useEffect(() => {
-    // Initial run across screen after a short delay
-    const initialTimeout = setTimeout(() => {
-      triggerRun();
-    }, 3000);
+    const doRun = () => {
+      if (document.visibilityState === 'hidden') return;
+      const allItems = mockCategories.flatMap(cat => cat.items.map(i => i.name));
+      const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+      const randomRes = mockResidences[Math.floor(Math.random() * mockResidences.length)].name.replace(' (Clifton Heights)', '').replace(' Halls of Residence', '');
+      const emoji = getEmoji(randomItem);
+      setPhrase(`Delivering ${randomItem} to ${randomRes}... ${emoji}`);
+      setIsAnimating(true);
+    };
 
-    // Re-trigger every 35 seconds to keep the application feeling alive
-    const interval = setInterval(() => {
-      triggerRun();
-    }, 35000);
+    const initialTimeout = setTimeout(doRun, 3000);
+    const interval = setInterval(doRun, 35000);
 
     return () => {
       clearTimeout(initialTimeout);
@@ -82,17 +70,6 @@ export function RunningAcrossScreen() {
         <AnimatedLogo size="lg" />
       </div>
 
-      {/* Keyframe animation for runner sliding across viewport */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes runAcross {
-          0% {
-            left: -250px;
-          }
-          100% {
-            left: calc(100vw + 10px);
-          }
-        }
-      `}} />
     </div>
   );
 }

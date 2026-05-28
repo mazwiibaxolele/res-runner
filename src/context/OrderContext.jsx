@@ -34,7 +34,9 @@ export function OrderProvider({ children }) {
 
   const removeFromCart = (itemId) => {
     setCart(prev => {
-      const updated = prev.filter(i => i.id !== itemId);
+      const updated = prev.map(i => 
+        i.id === itemId ? { ...i, quantity: i.quantity - 1 } : i
+      ).filter(i => i.quantity > 0);
       if (updated.length === 0) {
         setActiveCategory(null);
       }
@@ -63,7 +65,7 @@ export function OrderProvider({ children }) {
 
   const placeOrder = (orderDetails) => {
     const newOrder = {
-      id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+      id: 'ORD-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       ...orderDetails,
       items: [...cart],
       category: activeCategory,

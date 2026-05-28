@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
     }
 
     const newCustomer = {
-      id: 'user_' + Math.floor(1000 + Math.random() * 9000),
+      id: 'user_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       role: 'customer',
       name,
       email,
@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
 
   const applyAsRunner = (details) => {
     const newApp = {
-      id: 'app_' + Math.floor(1000 + Math.random() * 9000),
+      id: 'app_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       ...details,
       status: 'pending', // pending, approved, rejected
       createdAt: new Date().toISOString()
@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
     }
 
     const newRunner = {
-      id: 'user_' + Math.floor(1000 + Math.random() * 9000),
+      id: 'user_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       role: 'runner',
       name: app.name,
       email: app.email,
