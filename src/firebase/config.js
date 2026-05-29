@@ -5,12 +5,12 @@ import { getStorage } from 'firebase/storage';
 
 // Check if all necessary Firebase config keys are present
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyAIfzBkA65MP6j4Objge-ClJtlkMFKsmxI",
+  authDomain: "resrunner-d3f76.firebaseapp.com",
+  projectId: "resrunner-d3f76",
+  storageBucket: "resrunner-d3f76.firebasestorage.app",
+  messagingSenderId: "716599779870",
+  appId: "1:716599779870:web:07e07c15d2b31232a8c40f"
 };
 
 const hasConfig = 
