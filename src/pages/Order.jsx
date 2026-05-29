@@ -70,7 +70,7 @@ export function Order() {
   };
 
   // Pricing calculations
-  const fees = calculateTotal(selectedResidence.distanceKm);
+  const fees = calculateTotal();
 
   const handleCheckout = () => {
     if (!user) {
@@ -145,8 +145,8 @@ export function Order() {
                   <h2 className="text-2xl font-bold text-brand-text">{selectedCategory.name}</h2>
                   <p className="text-brand-muted text-sm">{selectedCategory.description}</p>
                 </div>
-                <span className="font-mono text-xs font-bold text-brand-primary px-3 py-1 bg-brand-primary/10 rounded-full">
-                  Base Fee: R{selectedCategory.baseFee.toFixed(2)}
+                <span className="font-mono text-[10px] font-bold text-brand-primary px-3 py-1 bg-brand-primary/10 rounded-full">
+                  Dynamic Service Fee applies
                 </span>
               </div>
 
@@ -294,12 +294,8 @@ export function Order() {
                       <span>R{fees.items.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-brand-muted">
-                      <span>Category Base Fee</span>
+                      <span>Service & Delivery Fee {fees.isNight && '(Night)'}</span>
                       <span>R{fees.service.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-brand-muted">
-                      <span>Distance Fee ({selectedResidence.distanceKm} km)</span>
-                      <span>R{fees.distance.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-brand-text font-bold text-lg pt-2 border-t">
                       <span>Total Cost</span>

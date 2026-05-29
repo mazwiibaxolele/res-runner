@@ -80,16 +80,40 @@ export function OrderProvider({ children }) {
     setActiveCategory(null);
   };
 
-  const calculateTotal = (distanceKm) => {
+  const calculateTotal = () => {
     const itemsTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const serviceFee = activeCategory ? activeCategory.baseFee : 0;
-    const distanceFee = distanceKm ? Math.ceil(distanceKm * 10) : 0;
     
+    if (!activeCategory) return { items: itemsTotal, service: 0, total: itemsTotal, platformCut: 0, runnerCut: 0 };
+
+    const currentHour = new Date().getHours();
+    const isNight = currentHour >= 18 || currentHour < 6;
+    
+    // Check if it's a collection-only category
+    const isCollection = activeCategory.id === 'cat_laundry' || activeCategory.id === 'cat_shoes';
+
+    let serviceFee = 0;
+    if (isCollection) {
+      serviceFee = isNight ? 45.00 : 40.00;
+    } else {
+      // 30% Day, 35% Night of the items total
+      const percentage = isNight ? 0.35 : 0.30;
+      serviceFee = itemsTotal * percentage;
+    }
+
+    // Round service fee to 2 decimals
+    serviceFee = Math.ceil(serviceFee * 100) / 100;
+
+    // Platform gets 30% of service fee, runner gets 70%
+    const platformCut = serviceFee * 0.30;
+    const runnerCut = serviceFee * 0.70;
+
     return {
       items: itemsTotal,
       service: serviceFee,
-      distance: distanceFee,
-      total: itemsTotal + serviceFee + distanceFee
+      total: itemsTotal + serviceFee,
+      platformCut,
+      runnerCut,
+      isNight
     };
   };
 
@@ -123,17 +147,17 @@ export function OrderProvider({ children }) {
     }
   };
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  const updateOrderStatus = async (orderId, newStatus, extraData = {}) => {
     if (isFirebaseEnabled) {
       try {
-        await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+        await updateDoc(doc(db, 'orders', orderId), { status: newStatus, ...extraData });
         toast.success(`Order status updated to ${newStatus}`);
       } catch (err) {
         console.error(err);
         toast.error('Failed to update order status in cloud.');
       }
     } else {
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, ...extraData } : o));
       toast.success(`Order status updated to ${newStatus}`);
     }
   };

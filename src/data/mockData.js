@@ -46,6 +46,17 @@ export const mockCategories = [
       { id: 'item_11', name: 'Standard Wash & Fold (per load)', price: 60.00 },
       { id: 'item_12', name: 'Ironing (per item)', price: 10.00 },
     ]
+  },
+  {
+    id: 'cat_shoes',
+    name: 'Sneaker Cleaning',
+    description: 'Drop off and pick up your sneakers for a fresh clean',
+    icon: 'Briefcase',
+    baseFee: 35.00,
+    items: [
+      { id: 'item_13', name: 'Deep Clean (per pair)', price: 80.00 },
+      { id: 'item_14', name: 'Standard Clean (per pair)', price: 50.00 },
+    ]
   }
 ];
 

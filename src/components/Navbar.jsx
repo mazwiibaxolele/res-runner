@@ -55,7 +55,7 @@ export function Navbar() {
               </>
             )}
 
-            {user && user.role === 'runner' && (
+            {user && (user.role === 'runner' || user.role === 'admin') && (
               <Link to="/runner-dashboard" className={isCurrentPath('/runner-dashboard') ? 'text-brand-primary font-bold' : 'hover:text-brand-text transition-colors'}>
                 🏃‍♂️ Runner Dashboard
               </Link>
@@ -120,7 +120,7 @@ export function Navbar() {
               </>
             )}
 
-            {user && user.role === 'runner' && (
+            {user && (user.role === 'runner' || user.role === 'admin') && (
               <Link to="/runner-dashboard" onClick={() => setIsOpen(false)} className="font-bold text-lg p-2 rounded-xl hover:bg-brand-bg text-brand-primary">
                 Runner Dashboard
               </Link>

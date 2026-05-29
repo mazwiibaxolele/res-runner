@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 export function AdminDashboard() {
   const { user, runnerApplications, approveRunner, rejectRunner, users } = useAuth();
   const { orders, updateOrderStatus } = useOrder();
+  const [selectedRunners, setSelectedRunners] = React.useState({});
 
   // Route security check
   if (!user || user.role !== 'admin') {
@@ -42,8 +43,18 @@ export function AdminDashboard() {
   const approvedRunners = users.filter(u => u.role === 'runner');
 
   const handleApprovePayment = (orderId) => {
-    // Approve payment and assign to the first runner or mock runner
-    updateOrderStatus(orderId, 'assigned');
+    const runnerId = selectedRunners[orderId];
+    if (!runnerId) {
+      alert('Please select a runner to delegate to, or claim it yourself.');
+      return;
+    }
+    const isSelfClaim = runnerId === 'admin_claim';
+    const assignedRunnerName = isSelfClaim ? user.name : approvedRunners.find(r => r.id === runnerId)?.name;
+    
+    updateOrderStatus(orderId, 'assigned', {
+      runnerId: isSelfClaim ? user.id : runnerId,
+      runnerName: assignedRunnerName
+    });
   };
 
   return (
@@ -102,7 +113,18 @@ export function AdminDashboard() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2 w-full md:w-auto">
+                      <div className="flex flex-col gap-2 w-full md:w-auto">
+                        <select 
+                          className="clay-input !py-1.5 !px-2 text-xs cursor-pointer"
+                          value={selectedRunners[order.id] || ''}
+                          onChange={(e) => setSelectedRunners(prev => ({ ...prev, [order.id]: e.target.value }))}
+                        >
+                          <option value="" disabled>Select Runner...</option>
+                          <option value="admin_claim" className="font-bold text-brand-primary">🙋‍♂️ Claim as Admin</option>
+                          {approvedRunners.map(r => (
+                            <option key={r.id} value={r.id}>🏃 {r.name} ({r.status || 'offline'})</option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => handleApprovePayment(order.id)}
                           className="flex-1 md:flex-none py-2 px-4 bg-brand-primary text-white border-b-4 border-green-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all active:translate-y-1 active:border-b-0"
@@ -147,7 +169,7 @@ export function AdminDashboard() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs text-brand-muted block">Runner</span>
-                        <span className="font-bold text-brand-text">Speedy Gonzales</span>
+                        <span className="font-bold text-brand-text">{order.runnerName || 'Pending'}</span>
                       </div>
                     </div>
                   ))}

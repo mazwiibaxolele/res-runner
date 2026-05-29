@@ -65,12 +65,27 @@ export function Landing() {
         {/* Features Bento */}
         <section className="py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[200px]">
-            <ClayCard className="md:col-span-2 md:row-span-2 flex flex-col justify-end bg-gradient-to-br from-brand-secondary/30 to-brand-primary/10">
-              <div className="bg-white p-4 rounded-2xl w-fit mb-4">
-                <Clock className="text-brand-primary" size={32} />
+            <ClayCard className="md:col-span-2 md:row-span-2 relative overflow-hidden bg-gradient-to-br from-brand-secondary/30 to-brand-primary/10">
+              {/* Decorative faint background icon */}
+              <div className="absolute -top-12 -right-12 opacity-10 pointer-events-none">
+                <Clock size={240} className="text-brand-primary -rotate-12" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">Late Night Runs</h3>
-              <p className="text-brand-muted text-lg">When the shops are closed and Uber Eats is too expensive, we've got you covered.</p>
+              
+              <div className="relative h-full flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div className="bg-white p-4 rounded-2xl w-fit shadow-sm">
+                    <Clock className="text-brand-primary" size={32} />
+                  </div>
+                  <span className="bg-brand-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    24/7 Available
+                  </span>
+                </div>
+                
+                <div className="mt-12">
+                  <h3 className="text-3xl font-bold mb-3">Late Night Runs</h3>
+                  <p className="text-brand-muted text-lg max-w-sm">When the shops are closed and Uber Eats is too expensive, our verified student runners have got you covered until the early hours.</p>
+                </div>
+              </div>
             </ClayCard>
             
             <ClayCard className="md:col-span-2 flex flex-col justify-center">

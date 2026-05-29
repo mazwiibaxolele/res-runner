@@ -1,13 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOrder } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
 import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
+import { ChatBox } from '../components/chat/ChatBox';
 import { 
   Package, MapPin, CheckCircle, RefreshCw, 
   HelpCircle, CreditCard, Clock, UserCheck, ShieldAlert 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const runnerIcon = new L.DivIcon({
+  className: 'custom-icon',
+  html: `<div style="background-color: #16A34A; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏃</div>`
+});
+
+const resIcon = new L.DivIcon({
+  className: 'custom-icon',
+  html: `<div style="background-color: #EF4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📍</div>`
+});
 
 const statusConfig = {
   pending_eft: {
@@ -45,6 +59,21 @@ const statusConfig = {
 export function Track() {
   const { user } = useAuth();
   const { orders } = useOrder();
+  const [activeChatOrderId, setActiveChatOrderId] = useState(null);
+  const [customerLocation, setCustomerLocation] = useState([-26.1912, 28.0305]); // Braamfontein default
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCustomerLocation([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.warn("Geolocation denied/failed. Using defaults.", error);
+        }
+      );
+    }
+  }, []);
 
   // Filter orders matching the logged in customer
   const customerOrders = orders.filter(
@@ -103,7 +132,7 @@ export function Track() {
               };
 
               return (
-                <ClayCard key={order.id} className="space-y-6 border-l-[12px] border-l-brand-primary">
+                <ClayCard key={order.id} className="space-y-6 border-l-[12px] border-l-brand-primary relative">
                   {/* Order Details Header */}
                   <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b border-slate-100">
                     <div>
@@ -182,60 +211,51 @@ export function Track() {
                   {/* Active Runner & Map Block (Only when assigned or in_progress) */}
                   {(order.status === 'assigned' || order.status === 'in_progress') && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      {/* Runner Details */}
-                      <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-brand-primary text-white font-heading font-bold text-lg flex items-center justify-center border-2 border-white shadow-clay-btn shrink-0">
-                          🏃‍♂️
+                      {/* Runner Details & Chat */}
+                      <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] flex flex-col justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-full bg-brand-primary text-white font-heading font-bold text-lg flex items-center justify-center border-2 border-white shadow-clay-btn shrink-0">
+                            🏃‍♂️
+                          </div>
+                          <div>
+                            <p className="text-xs text-brand-muted font-bold">Assigned Runner</p>
+                            <p className="font-bold text-brand-text">{order.runnerName || 'Verified Runner'}</p>
+                            <span className="text-[11px] bg-brand-primary/20 text-brand-primary px-2.5 py-0.5 rounded-full font-semibold inline-block mt-0.5">
+                              Verified
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-brand-muted font-bold">Assigned Runner</p>
-                          <p className="font-bold text-brand-text">Speedy Gonzales</p>
-                          <span className="text-[11px] bg-brand-primary/20 text-brand-primary px-2.5 py-0.5 rounded-full font-semibold inline-block mt-0.5">
-                            Verified Wits Student
-                          </span>
-                        </div>
+                        <ClayButton 
+                          className="!py-2 text-sm flex gap-2 justify-center" 
+                          variant="secondary"
+                          onClick={() => setActiveChatOrderId(order.id)}
+                        >
+                          <HelpCircle size={16} /> Chat with Runner
+                        </ClayButton>
                       </div>
 
-                      {/* Mock Interactive GPS Map */}
-                      <div className="clay-card relative h-[140px] bg-sky-100 overflow-hidden flex flex-col justify-end p-2 border-2">
-                        {/* Styled SVG map overlay */}
-                        <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 200 100" fill="none">
-                          {/* Map Streets */}
-                          <path d="M10 20 H190 M10 50 H190 M10 80 H190 M50 5 V95 M120 5 V95 M170 5 V95" stroke="#cbd5e1" strokeWidth="4" />
-                          {/* Delivery Route Path */}
-                          <path d="M50 80 H120 V20" stroke="#16A34A" strokeWidth="2" strokeDasharray="3,3" />
-                        </svg>
-
-                        {/* Residence Dot */}
-                        <div className="absolute top-[14px] left-[114px] flex flex-col items-center">
-                          <MapPin size={18} className="text-red-500 fill-red-500 animate-bounce" />
-                          <span className="text-[9px] font-bold bg-white text-slate-800 border px-1 rounded-sm shadow-sm scale-90 -mt-0.5">
-                            Res
-                          </span>
-                        </div>
-
-                        {/* Moving Runner Dot */}
-                        <div 
-                          className="absolute w-4 h-4 bg-brand-primary border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white shadow-md animate-ping"
-                          style={{
-                            left: order.status === 'assigned' ? '42px' : '112px',
-                            top: order.status === 'assigned' ? '72px' : '45px',
-                            transition: 'all 5s ease-in-out'
-                          }}
-                        ></div>
-                        <div 
-                          className="absolute w-4 h-4 bg-brand-primary border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white shadow-md"
-                          style={{
-                            left: order.status === 'assigned' ? '42px' : '112px',
-                            top: order.status === 'assigned' ? '72px' : '45px',
-                            transition: 'all 5s ease-in-out'
-                          }}
+                      {/* Real Interactive GPS Map using Leaflet */}
+                      <div className="clay-card relative h-[180px] bg-slate-100 overflow-hidden flex flex-col justify-end p-0 border-2 rounded-[20px] z-0">
+                        <MapContainer 
+                          key={customerLocation.join(',')}
+                          center={customerLocation} 
+                          zoom={14} 
+                          scrollWheelZoom={false}
+                          style={{ height: '100%', width: '100%', zIndex: 1 }}
                         >
-                          🏃
-                        </div>
-
-                        <span className="relative z-10 self-start text-[10px] font-bold bg-white/90 px-2 py-0.5 rounded-full text-brand-muted shadow-sm flex items-center gap-1">
-                          <RefreshCw size={10} className="animate-spin text-brand-primary" /> Live tracking active...
+                          <TileLayer
+                            attribution='&copy; OpenStreetMap'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          />
+                          <Marker position={customerLocation} icon={resIcon}>
+                            <Popup>Your Location</Popup>
+                          </Marker>
+                          <Marker position={[customerLocation[0] + 0.003, customerLocation[1] - 0.005]} icon={runnerIcon}>
+                            <Popup>Runner Location (Est)</Popup>
+                          </Marker>
+                        </MapContainer>
+                        <span className="absolute top-2 left-2 z-[400] text-[10px] font-bold bg-white/90 px-2 py-0.5 rounded-full text-brand-muted shadow-sm flex items-center gap-1">
+                          <RefreshCw size={10} className="animate-spin text-brand-primary" /> Live tracking...
                         </span>
                       </div>
                     </div>
@@ -264,6 +284,15 @@ export function Track() {
               );
             })}
           </div>
+        )}
+
+        {/* Global ChatBox Mount */}
+        {activeChatOrderId && (
+          <ChatBox 
+            orderId={activeChatOrderId} 
+            onClose={() => setActiveChatOrderId(null)} 
+            recipientName="Runner"
+          />
         )}
 
       </div>
