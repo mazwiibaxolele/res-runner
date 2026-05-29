@@ -21,7 +21,13 @@ export function Checkout() {
     setSubmitting(true);
     
     // Use the specific Admin's WhatsApp number who claimed the order
-    const adminWhatsApp = order.adminPhone || "27612345678"; 
+    let adminWhatsApp = order.adminPhone || "27612345678"; 
+    
+    // Format the number for WhatsApp (remove spaces/dashes, replace leading 0 with 27)
+    adminWhatsApp = adminWhatsApp.replace(/\D/g, ''); // strip non-digits
+    if (adminWhatsApp.startsWith('0')) {
+      adminWhatsApp = '27' + adminWhatsApp.substring(1);
+    }
     
     const message = `Hi, here is my Proof of Payment for order *${order.id}*.\n\nDelivery to: ${order.residence}\nTotal: R${order.pricing.total.toFixed(2)}`;
     const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(message)}`;
