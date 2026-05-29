@@ -33,8 +33,8 @@ export function RunnerDashboard() {
 
   const isOnline = user.status === 'online';
 
-  // Active errand for this runner
-  const activeErrand = orders.find(o => ['assigned', 'in_progress'].includes(o.status) && o.runnerId === user.id);
+  // Active errands for this runner
+  const activeErrands = orders.filter(o => ['assigned', 'in_progress'].includes(o.status) && o.runnerId === user.id);
 
   // Completed errands by this runner
   const completedErrands = orders.filter(o => o.status === 'delivered' && o.runnerId === user.id);
@@ -44,12 +44,12 @@ export function RunnerDashboard() {
     return sum + (o.pricing?.runnerCut || 0);
   }, 0);
 
-  const handleStatusTransition = () => {
-    if (!activeErrand) return;
-    if (activeErrand.status === 'assigned') {
-      updateOrderStatus(activeErrand.id, 'in_progress');
-    } else if (activeErrand.status === 'in_progress') {
-      updateOrderStatus(activeErrand.id, 'delivered');
+  const handleStatusTransition = (errand) => {
+    if (!errand) return;
+    if (errand.status === 'assigned') {
+      updateOrderStatus(errand.id, 'in_progress');
+    } else if (errand.status === 'in_progress') {
+      updateOrderStatus(errand.id, 'delivered');
     }
   };
 
@@ -129,82 +129,96 @@ export function RunnerDashboard() {
           {/* Active Errand Column */}
           <div className="lg:col-span-2 space-y-6">
             <ClayCard className="space-y-6">
-              <h2 className="text-2xl font-bold border-b pb-3">Active Dispatch Errand</h2>
+              <h2 className="text-2xl font-bold border-b pb-3">Active Dispatch Errands</h2>
 
-              {!isOnline ? (
+              {activeErrands.length > 0 ? (
+                <div className="space-y-8">
+                  {activeErrands.map(errand => (
+                    <div key={errand.id} className="space-y-6 relative border-2 border-brand-primary/20 p-4 rounded-2xl bg-brand-primary/5">
+                      {/* Status Indicator */}
+                      <div className="bg-brand-bg p-4 rounded-[16px] border-2 border-white flex justify-between items-center text-sm shadow-inner">
+                        <div>
+                          <span className="text-xs text-brand-muted font-semibold">Order ID</span>
+                          <p className="font-bold text-brand-primary text-base">
+                            {errand.id}
+                          </p>
+                          <span className="text-xs text-brand-muted font-semibold mt-1 block">Status</span>
+                          <p className="font-bold text-brand-primary capitalize text-base">
+                            {errand.status.replace('_', ' ')}
+                          </p>
+                        </div>
+                        
+                        <ClayButton onClick={() => handleStatusTransition(errand)}>
+                          {errand.status === 'assigned' ? 'Start Fetching' : 'Mark Delivered'}
+                        </ClayButton>
+                      </div>
+
+                      {/* Customer details */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <p className="font-bold text-brand-text flex items-center gap-1.5">
+                              <User size={16} className="text-brand-primary" /> Customer Info
+                            </p>
+                            <button 
+                              onClick={() => setShowChat(errand.id)}
+                              className="flex items-center gap-1 bg-brand-primary/10 text-brand-primary font-bold px-2 py-1 rounded-full text-[10px] hover:bg-brand-primary hover:text-white transition-colors"
+                            >
+                              <MessageCircle size={12} /> Chat
+                            </button>
+                          </div>
+                          <p className="text-brand-muted">Name: <span className="font-semibold text-brand-text">{errand.customerName}</span></p>
+                          <p className="text-brand-muted">Email: <span className="font-semibold text-brand-text">{errand.customerEmail}</span></p>
+                        </div>
+
+                        <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] space-y-2 text-sm">
+                          <p className="font-bold text-brand-text flex items-center gap-1.5">
+                            <MapPin size={16} className="text-brand-primary" /> Delivery Res
+                          </p>
+                          <p className="text-brand-muted font-semibold text-brand-text text-base">{errand.residence}</p>
+                          <p className="text-[11px] text-brand-primary font-bold mt-1 bg-brand-primary/10 px-2 py-1 rounded-full inline-block">
+                            Earnings: R{errand.pricing?.runnerCut?.toFixed(2) || '0.00'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Shopping List */}
+                      <div className="bg-brand-bg/30 p-5 rounded-[20px] border-2 border-white space-y-3">
+                        <h3 className="font-heading font-bold text-sm text-brand-text flex items-center gap-1.5">
+                          <ShoppingCart size={16} className="text-brand-primary" /> Shopping Checklist
+                        </h3>
+                        
+                        <div className="divide-y divide-slate-100">
+                          {errand.items?.map((item, idx) => (
+                            <div key={idx} className="flex justify-between py-2 text-sm text-brand-text font-semibold">
+                              <span>{item.name} {item.quantity > 1 && `x${item.quantity}`}</span>
+                              <span>R{(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t flex justify-between font-bold text-brand-primary">
+                          <span>Items Total</span>
+                          <span>R{errand.pricing?.items?.toFixed(2) || '0.00'}</span>
+                        </div>
+                      </div>
+
+                      {showChat === errand.id && (
+                        <div className="mt-4 border-2 border-slate-200 rounded-2xl overflow-hidden">
+                          <ChatBox orderId={errand.id} onClose={() => setShowChat(null)} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : !isOnline ? (
                 <div className="text-center py-8 text-brand-muted space-y-2">
                   <p>You are currently offline.</p>
                   <p className="text-xs">Turn on availability in the header to start accepting errands.</p>
                 </div>
-              ) : !activeErrand ? (
+              ) : (
                 <div className="text-center py-8 text-brand-muted space-y-2">
                   <p>No errands assigned yet.</p>
                   <p className="text-xs">Incoming errands will appear here once verified by an Admin.</p>
-                </div>
-              ) : (
-                <div className="space-y-6 relative">
-                  {/* Status Indicator */}
-                  <div className="bg-brand-bg p-4 rounded-[16px] border-2 border-white flex justify-between items-center text-sm shadow-inner">
-                    <div>
-                      <span className="text-xs text-brand-muted font-semibold">Status</span>
-                      <p className="font-bold text-brand-primary capitalize text-base">
-                        {activeErrand.status.replace('_', ' ')}
-                      </p>
-                    </div>
-                    
-                    <ClayButton onClick={handleStatusTransition}>
-                      {activeErrand.status === 'assigned' ? 'Start Fetching' : 'Mark Delivered'}
-                    </ClayButton>
-                  </div>
-
-                  {/* Customer details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] space-y-2 text-sm">
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-brand-text flex items-center gap-1.5">
-                          <User size={16} className="text-brand-primary" /> Customer Info
-                        </p>
-                        <button 
-                          onClick={() => setShowChat(true)}
-                          className="flex items-center gap-1 bg-brand-primary/10 text-brand-primary font-bold px-2 py-1 rounded-full text-[10px] hover:bg-brand-primary hover:text-white transition-colors"
-                        >
-                          <MessageCircle size={12} /> Chat
-                        </button>
-                      </div>
-                      <p className="text-brand-muted">Name: <span className="font-semibold text-brand-text">{activeErrand.customerName}</span></p>
-                      <p className="text-brand-muted">Email: <span className="font-semibold text-brand-text">{activeErrand.customerEmail}</span></p>
-                      <p className="text-brand-muted flex items-center gap-1">
-                        <Phone size={12} /> Contact: <span className="font-semibold text-brand-text">082 123 4567</span>
-                      </p>
-                    </div>
-
-                    <div className="bg-brand-bg/50 p-4 border-2 border-white rounded-[20px] space-y-2 text-sm">
-                      <p className="font-bold text-brand-text flex items-center gap-1.5">
-                        <MapPin size={16} className="text-brand-primary" /> Delivery Res
-                      </p>
-                      <p className="text-brand-muted font-semibold text-brand-text text-base">{activeErrand.residence}</p>
-                      <p className="text-[11px] text-brand-primary font-bold mt-1 bg-brand-primary/10 px-2 py-1 rounded-full inline-block">
-                        Earnings: R{activeErrand.pricing?.runnerCut?.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Shopping List */}
-                  <div className="bg-brand-bg/30 p-5 rounded-[20px] border-2 border-white space-y-3">
-                    <h3 className="font-heading font-bold text-sm text-brand-text flex items-center gap-1.5">
-                      <ShoppingCart size={16} className="text-brand-primary" /> Shopping Checklist
-                    </h3>
-                    
-                    <div className="divide-y divide-slate-100">
-                      {activeErrand.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between py-2 text-sm text-brand-text font-semibold">
-                          <span>{item.quantity} x {item.name}</span>
-                          <span className="text-brand-muted">Est: R{item.price.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                 </div>
               )}
             </ClayCard>
