@@ -12,7 +12,10 @@ export function Checkout() {
   const navigate = useNavigate();
   const { orders, updateOrderStatus } = useOrder();
   const { users } = useAuth();
-  const [popFile, setPopFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const order = orders.find(o => o.id === orderId);
+
   const handleSubmitPOP = (e) => {
     e.preventDefault();
     setSubmitting(true);
