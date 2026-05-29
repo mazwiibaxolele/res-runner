@@ -20,9 +20,8 @@ export function Checkout() {
     e.preventDefault();
     setSubmitting(true);
     
-    // The admin's WhatsApp number (make sure to include country code without '+')
-    // TODO: You can update this to your actual phone number later
-    const adminWhatsApp = "27612345678"; 
+    // Use the specific Admin's WhatsApp number who claimed the order
+    const adminWhatsApp = order.adminPhone || "27612345678"; 
     
     const message = `Hi, here is my Proof of Payment for order *${order.id}*.\n\nDelivery to: ${order.residence}\nTotal: R${order.pricing.total.toFixed(2)}`;
     const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(message)}`;
@@ -52,6 +51,33 @@ export function Checkout() {
     );
   }
 
+  if (order.status === 'awaiting_admin') {
+    return (
+      <div className="min-h-screen pt-28 pb-12 px-4 flex items-center justify-center">
+        <ClayCard className="max-w-md w-full text-center space-y-6">
+          <div className="w-20 h-20 mx-auto border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+          <div>
+            <h2 className="text-2xl font-bold text-brand-text">Finding an Admin...</h2>
+            <p className="text-brand-muted mt-2">
+              Please wait while an available admin claims your order. This page will automatically update with payment details once they do.
+            </p>
+          </div>
+          <p className="text-xs font-bold text-brand-primary bg-brand-primary/10 py-2 rounded-lg animate-pulse">
+            Do not close this page
+          </p>
+        </ClayCard>
+      </div>
+    );
+  }
+
+  // Get dynamic bank details or fallback to generic
+  const bankDetails = order.adminBankDetails || {
+    bankName: "First National Bank (FNB)",
+    accountNumber: "62912345678",
+    branchCode: "250655",
+    accountType: "Business Cheque"
+  };
+
   return (
     <div className="min-h-screen pt-28 pb-12 px-4 md:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -79,19 +105,19 @@ export function Checkout() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between bg-brand-bg/50 p-2.5 rounded-lg border">
                   <span className="text-brand-muted font-semibold">Bank Name:</span>
-                  <span className="font-bold text-brand-text">First National Bank (FNB)</span>
+                  <span className="font-bold text-brand-text">{bankDetails.bankName}</span>
                 </div>
                 <div className="flex justify-between bg-brand-bg/50 p-2.5 rounded-lg border">
                   <span className="text-brand-muted font-semibold">Account Number:</span>
-                  <span className="font-mono font-bold text-brand-text">62912345678</span>
+                  <span className="font-mono font-bold text-brand-text">{bankDetails.accountNumber}</span>
                 </div>
                 <div className="flex justify-between bg-brand-bg/50 p-2.5 rounded-lg border">
                   <span className="text-brand-muted font-semibold">Branch Code:</span>
-                  <span className="font-mono font-bold text-brand-text">250655</span>
+                  <span className="font-mono font-bold text-brand-text">{bankDetails.branchCode}</span>
                 </div>
                 <div className="flex justify-between bg-brand-bg/50 p-2.5 rounded-lg border">
                   <span className="text-brand-muted font-semibold">Account Type:</span>
-                  <span className="font-bold text-brand-text">Business Cheque</span>
+                  <span className="font-bold text-brand-text">{bankDetails.accountType}</span>
                 </div>
                 <div className="flex justify-between bg-brand-bg/50 p-2.5 rounded-lg border border-brand-accent/50 bg-brand-accent/5">
                   <span className="text-yellow-800 font-bold">Payment Reference:</span>

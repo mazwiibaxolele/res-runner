@@ -5,7 +5,7 @@ import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
 import { 
   Shield, Check, X, FileText, UserCheck, 
-  CreditCard, ClipboardList, ShieldAlert, Award
+  CreditCard, ClipboardList, ShieldAlert, Award, Hand
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -30,8 +30,14 @@ export function AdminDashboard() {
     );
   }
 
-  // Filter orders needing payment approval (pending_runner status)
-  const pendingPaymentOrders = orders.filter(o => o.status === 'pending_runner');
+  // Filter unclaimed orders
+  const unclaimedOrders = orders.filter(o => o.status === 'awaiting_admin');
+
+  // Filter orders needing payment approval (pending_runner status means waiting for dispatch now)
+  const pendingPaymentOrders = orders.filter(o => o.status === 'pending_eft' && o.claimedByAdminId === user.id);
+  // Optional: See all pending EFTs or just the ones this admin claimed. Let's show only ones claimed by THIS admin or all if we want.
+  // Actually, let's show all pending EFTs but highlight if it's ours.
+  const allPendingEFTs = orders.filter(o => o.status === 'pending_eft');
   
   // Filter other active orders
   const activeOrders = orders.filter(o => ['assigned', 'in_progress'].includes(o.status));
@@ -41,6 +47,15 @@ export function AdminDashboard() {
 
   // Filter all approved runners in system
   const approvedRunners = users.filter(u => u.role === 'runner');
+
+  const handleClaimOrder = (orderId) => {
+    updateOrderStatus(orderId, 'pending_eft', {
+      claimedByAdminId: user.id,
+      adminPhone: user.phone || '27612345678', // fallback if empty
+      adminBankDetails: user.bankDetails || null,
+      adminName: user.name || 'Admin'
+    });
+  };
 
   const handleApprovePayment = (orderId) => {
     const runnerId = selectedRunners[orderId];
@@ -75,63 +90,118 @@ export function AdminDashboard() {
         {/* Dashboard Panels Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* EFT Verification Panel */}
+          {/* EFT Verification & Claiming Panel */}
           <div className="lg:col-span-2 space-y-6">
-            <ClayCard className="space-y-4">
-              <div className="flex items-center gap-2 border-b pb-3">
-                <CreditCard className="text-brand-primary" size={20} />
-                <h2 className="text-xl font-bold">EFT Verification Queue ({pendingPaymentOrders.length})</h2>
+            
+            {/* Unclaimed Orders Queue */}
+            <ClayCard className="space-y-4 border-2 border-brand-primary/20 bg-brand-primary/5">
+              <div className="flex items-center gap-2 border-b border-brand-primary/20 pb-3">
+                <Hand className="text-brand-primary" size={20} />
+                <h2 className="text-xl font-bold">Unclaimed New Orders ({unclaimedOrders.length})</h2>
               </div>
 
-              {pendingPaymentOrders.length === 0 ? (
-                <p className="text-brand-muted text-sm py-6 text-center">
-                  No pending EFT proof uploads at this time.
+              {unclaimedOrders.length === 0 ? (
+                <p className="text-brand-muted text-sm py-4 text-center">
+                  No new orders waiting to be claimed.
                 </p>
               ) : (
                 <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                  {pendingPaymentOrders.map(order => (
+                  {unclaimedOrders.map(order => (
                     <div 
                       key={order.id} 
-                      className="p-4 bg-brand-bg/50 border-2 border-white rounded-[20px] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                      className="p-4 bg-white border-2 border-brand-primary/20 rounded-[20px] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-brand-text">{order.id}</span>
-                          <span className="text-xs bg-brand-primary/10 text-brand-primary font-bold px-2 py-0.5 rounded-full">
-                            R{order.pricing.total.toFixed(2)}
+                          <span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full border border-yellow-200">
+                            Awaiting Admin
                           </span>
                         </div>
                         <p className="text-xs text-brand-muted">
                           Customer: <span className="font-semibold text-brand-text">{order.customerName}</span> | Res: <span className="font-semibold text-brand-text">{order.residence}</span>
                         </p>
-                        <div className="flex items-center gap-1.5 text-xs pt-1">
-                          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded border border-green-200 font-semibold truncate max-w-[150px]">
-                            Check WhatsApp for POP
-                          </span>
+                        <div className="font-bold text-brand-primary text-sm pt-1">
+                          R{order.pricing.total.toFixed(2)}
                         </div>
                       </div>
                       
-                      <div className="flex flex-col gap-2 w-full md:w-auto">
-                        <select 
-                          className="clay-input !py-1.5 !px-2 text-xs cursor-pointer"
-                          value={selectedRunners[order.id] || ''}
-                          onChange={(e) => setSelectedRunners(prev => ({ ...prev, [order.id]: e.target.value }))}
-                        >
-                          <option value="" disabled>Select Runner...</option>
-                          <option value="admin_claim" className="font-bold text-brand-primary">🙋‍♂️ Claim as Admin</option>
-                          {approvedRunners.map(r => (
-                            <option key={r.id} value={r.id}>🏃 {r.name} ({r.status || 'offline'})</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleApprovePayment(order.id)}
-                          className="flex-1 md:flex-none py-2 px-4 bg-brand-primary text-white border-b-4 border-green-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all active:translate-y-1 active:border-b-0"
-                        >
-                          <Check size={14} /> Verify & Dispatch
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleClaimOrder(order.id)}
+                        className="w-full md:w-auto py-2 px-6 bg-brand-text text-white border-b-4 border-slate-900 text-sm font-bold rounded-xl transition-all active:translate-y-1 active:border-b-0 hover:bg-slate-800"
+                      >
+                        Claim Order
+                      </button>
                     </div>
                   ))}
+                </div>
+              )}
+            </ClayCard>
+
+            {/* Claimed / EFT Pending Queue */}
+            <ClayCard className="space-y-4">
+              <div className="flex items-center gap-2 border-b pb-3">
+                <CreditCard className="text-brand-primary" size={20} />
+                <h2 className="text-xl font-bold">EFT Verification Queue ({allPendingEFTs.length})</h2>
+              </div>
+
+              {allPendingEFTs.length === 0 ? (
+                <p className="text-brand-muted text-sm py-6 text-center">
+                  No pending EFT proofs at this time.
+                </p>
+              ) : (
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                  {allPendingEFTs.map(order => {
+                    const isMyClaim = order.claimedByAdminId === user.id;
+                    return (
+                      <div 
+                        key={order.id} 
+                        className={`p-4 bg-brand-bg/50 border-2 rounded-[20px] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${isMyClaim ? 'border-brand-primary/50' : 'border-white opacity-60'}`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-brand-text">{order.id}</span>
+                            <span className="text-xs bg-brand-primary/10 text-brand-primary font-bold px-2 py-0.5 rounded-full">
+                              R{order.pricing.total.toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-brand-muted">
+                            Customer: <span className="font-semibold text-brand-text">{order.customerName}</span> | Res: <span className="font-semibold text-brand-text">{order.residence}</span>
+                          </p>
+                          <div className="flex flex-col gap-1 pt-1">
+                            <span className="text-xs font-semibold text-slate-500">
+                              Claimed by: {order.adminName || 'Admin'} {isMyClaim && '(You)'}
+                            </span>
+                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded border border-green-200 font-semibold truncate max-w-[150px] text-xs inline-block text-center">
+                              Check WhatsApp
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 w-full md:w-auto">
+                          <select 
+                            className="clay-input !py-1.5 !px-2 text-xs cursor-pointer"
+                            value={selectedRunners[order.id] || ''}
+                            onChange={(e) => setSelectedRunners(prev => ({ ...prev, [order.id]: e.target.value }))}
+                            disabled={!isMyClaim}
+                          >
+                            <option value="" disabled>Select Runner...</option>
+                            <option value="admin_claim" className="font-bold text-brand-primary">🙋‍♂️ Run it Myself</option>
+                            {approvedRunners.map(r => (
+                              <option key={r.id} value={r.id}>🏃 {r.name} ({r.status || 'offline'})</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleApprovePayment(order.id)}
+                            disabled={!isMyClaim}
+                            className={`flex-1 md:flex-none py-2 px-4 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all ${isMyClaim ? 'bg-brand-primary border-b-4 border-green-700 active:translate-y-1 active:border-b-0' : 'bg-slate-400 cursor-not-allowed'}`}
+                          >
+                            <Check size={14} /> Verify & Dispatch
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ClayCard>

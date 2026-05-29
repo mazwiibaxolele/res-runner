@@ -118,13 +118,16 @@ export function OrderProvider({ children }) {
   };
 
   const placeOrder = async (orderDetails) => {
-    const orderId = 'ORD-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    // Generate robust 6-character alphanumeric ID
+    const randomChars = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const orderId = `ORD-${randomChars}`;
+
     const newOrder = {
       id: orderId,
       ...orderDetails,
       items: [...cart],
       category: activeCategory,
-      status: 'pending_eft',
+      status: 'awaiting_admin',
       createdAt: new Date().toISOString(),
     };
     
@@ -132,7 +135,7 @@ export function OrderProvider({ children }) {
       try {
         await setDoc(doc(db, 'orders', orderId), newOrder);
         clearCart();
-        toast.success('Order placed! Please upload EFT proof.');
+        toast.success('Order placed! Waiting for Admin to claim.');
         return orderId;
       } catch (err) {
         console.error(err);
@@ -142,7 +145,7 @@ export function OrderProvider({ children }) {
     } else {
       setOrders(prev => [newOrder, ...prev]);
       clearCart();
-      toast.success('Order placed! Please upload EFT proof.');
+      toast.success('Order placed! Waiting for Admin to claim.');
       return orderId;
     }
   };
