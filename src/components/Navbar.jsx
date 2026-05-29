@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, LogOut, Shield, Award, User } from 'lucide-react';
+import { Menu, X, LogOut, Shield, Award, User, Settings as SettingsIcon } from 'lucide-react';
 import { AnimatedLogo } from './ui/AnimatedLogo';
 import { ClayButton } from './ui/ClayButton';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +79,9 @@ export function Navbar() {
                   {user.role === 'runner' && <span className="w-2.5 h-2.5 rounded-full bg-brand-primary inline-block"></span>}
                   {user.name.split(' ')[0]}
                 </span>
+                <Link to="/settings" className="text-brand-muted hover:text-brand-primary transition-colors p-1" title="Settings">
+                  <SettingsIcon size={18} />
+                </Link>
                 <button 
                   onClick={handleLogout}
                   className="text-brand-muted hover:text-red-500 transition-colors p-1"
@@ -142,6 +145,11 @@ export function Navbar() {
                     {user.role}
                   </span>
                 </div>
+                <Link to="/settings" onClick={() => setIsOpen(false)} className="w-full text-center">
+                  <ClayButton variant="secondary" className="w-full flex items-center justify-center gap-2">
+                    <SettingsIcon size={18} /> Settings
+                  </ClayButton>
+                </Link>
                 <ClayButton onClick={handleLogout} variant="secondary" className="w-full text-red-500 border-red-200">
                   Log Out
                 </ClayButton>

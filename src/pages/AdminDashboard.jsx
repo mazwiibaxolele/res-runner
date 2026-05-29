@@ -107,9 +107,14 @@ export function AdminDashboard() {
                         <div className="flex items-center gap-1.5 text-xs text-brand-muted pt-1">
                           <FileText size={14} className="text-brand-primary" />
                           <span>POP File: </span>
-                          <span className="font-mono bg-white px-1.5 py-0.5 rounded border text-[10px] text-brand-primary font-semibold truncate max-w-[150px]">
-                            pop_receipt.pdf
-                          </span>
+                          <a 
+                            href={order.popUrl || '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="font-mono bg-white px-1.5 py-0.5 rounded border text-[10px] text-brand-primary font-semibold hover:underline truncate max-w-[150px]"
+                          >
+                            {order.popUrl === 'simulated_local_url' ? 'simulated_local_url' : 'View Receipt'}
+                          </a>
                         </div>
                       </div>
                       

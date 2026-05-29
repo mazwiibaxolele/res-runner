@@ -11,6 +11,7 @@ import { Track } from './pages/Track';
 import { Services } from './pages/Services';
 import { RunnerDashboard } from './pages/RunnerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { Settings } from './pages/Settings';
 import { AuthProvider } from './context/AuthContext';
 import { OrderProvider } from './context/OrderContext';
 import { RunningAcrossScreen } from './components/ui/RunningAcrossScreen';
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/checkout/:orderId" element={<Checkout />} />
                 <Route path="/runner-dashboard" element={<RunnerDashboard />} />
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </main>
             

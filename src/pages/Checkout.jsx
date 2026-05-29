@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useOrder } from '../context/OrderContext';
+import { useAuth } from '../context/AuthContext';
+import { storage } from '../firebase/config';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
 import { Landmark, UploadCloud, CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
@@ -10,20 +13,24 @@ export function Checkout() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { orders, updateOrderStatus } = useOrder();
-  const [popFile, setPopFile] = useState('');
+  const { users } = useAuth();
+  const [popFile, setPopFile] = useState(null);
+  const [popFileName, setPopFileName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const order = orders.find(o => o.id === orderId);
 
   const handleFileChange = (e) => {
     const files = e.target.files;
     if (files.length > 0) {
-      setPopFile(files[0].name);
+      setPopFile(files[0]);
+      setPopFileName(files[0].name);
       toast.success('Proof of payment attached!');
     }
   };
 
-  const handleSubmitPOP = (e) => {
+  const handleSubmitPOP = async (e) => {
     e.preventDefault();
     if (!popFile) {
       toast.error('Please upload your proof of payment.');
@@ -31,13 +38,43 @@ export function Checkout() {
     }
 
     setSubmitting(true);
-    // Simulate short upload latency
-    setTimeout(() => {
-      // update status to pending_runner: meaning EFT uploaded, waiting for runner acceptance (or admin verification)
-      updateOrderStatus(orderId, 'pending_runner');
+    
+    try {
+      if (storage) {
+        const storageRef = ref(storage, `receipts/${orderId}_${popFile.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, popFile);
+
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            toast.error('Failed to upload receipt');
+            setSubmitting(false);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            await updateOrderStatus(orderId, 'pending_runner', { popUrl: downloadURL });
+            setSubmitting(false);
+            navigate('/track');
+          }
+        );
+      } else {
+        // Fallback for local simulation
+        setTimeout(() => {
+          updateOrderStatus(orderId, 'pending_runner', { popUrl: 'simulated_local_url' });
+          setSubmitting(false);
+          navigate('/track');
+        }, 1200);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('An error occurred during upload.');
       setSubmitting(false);
-      navigate('/track');
-    }, 1200);
+    }
   };
 
   if (!order) {
@@ -122,8 +159,13 @@ export function Checkout() {
                   />
                   <UploadCloud className="text-brand-primary mb-2 animate-pulse" size={32} />
                   <span className="text-xs font-semibold block text-brand-text truncate max-w-full">
-                    {popFile || 'Drag & drop or click to upload PDF/Image'}
+                    {popFileName || 'Drag & drop or click to upload PDF/Image'}
                   </span>
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
+                      <div className="bg-brand-primary h-full" style={{ width: `${uploadProgress}%` }}></div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-brand-bg p-3.5 rounded-[16px] text-xs text-brand-muted space-y-1.5 border">

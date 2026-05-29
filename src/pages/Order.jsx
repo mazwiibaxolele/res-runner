@@ -7,7 +7,7 @@ import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
 import { 
   ShoppingBag, Pizza, Pill, Shirt, Plus, Minus, Trash2, 
-  MapPin, ClipboardList, Info, HelpCircle 
+  MapPin, ClipboardList, Info, HelpCircle, Search 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -33,6 +33,33 @@ export function Order() {
   const [selectedResidence, setSelectedResidence] = useState(mockResidences[0]);
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState('');
+  
+  // Custom Location states
+  const [isCustomLocation, setIsCustomLocation] = useState(false);
+  const [customAddress, setCustomAddress] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
+
+  const handleGeocode = async (e) => {
+    e.preventDefault();
+    if (!customAddress) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customAddress + ' Johannesburg')}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setDeliveryCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        toast.success('Location found on map!');
+      } else {
+        setDeliveryCoords([-26.1929, 28.0305]); // Braamfontein
+        toast.error('Location not exact, defaulting to Braamfontein area');
+      }
+    } catch(err) {
+      setDeliveryCoords([-26.1929, 28.0305]);
+      toast.error('Search failed, defaulting to Braamfontein');
+    }
+    setGeocoding(false);
+  };
 
   // Handle category change (checks if cart needs clearing first)
   const handleCategorySelect = (category) => {
@@ -84,11 +111,18 @@ export function Order() {
       return;
     }
 
+    if (isCustomLocation && (!customAddress || !deliveryCoords)) {
+      toast.error('Please search for your custom location first.');
+      return;
+    }
+
     const orderId = placeOrder({
       customerName: user.name,
       customerEmail: user.email,
-      residence: selectedResidence.name,
-      distanceKm: selectedResidence.distanceKm,
+      residence: isCustomLocation ? customAddress : selectedResidence.name,
+      distanceKm: isCustomLocation ? 3.0 : selectedResidence.distanceKm,
+      deliveryLat: isCustomLocation && deliveryCoords ? deliveryCoords[0] : null,
+      deliveryLon: isCustomLocation && deliveryCoords ? deliveryCoords[1] : null,
       pricing: fees,
     });
 
@@ -272,10 +306,15 @@ export function Order() {
                       <MapPin size={14} className="text-brand-primary" /> Delivery Residence
                     </label>
                     <select
-                      value={selectedResidence.id}
+                      value={isCustomLocation ? 'custom' : selectedResidence.id}
                       onChange={(e) => {
-                        const res = mockResidences.find(r => r.id === e.target.value);
-                        if (res) setSelectedResidence(res);
+                        if (e.target.value === 'custom') {
+                          setIsCustomLocation(true);
+                        } else {
+                          setIsCustomLocation(false);
+                          const res = mockResidences.find(r => r.id === e.target.value);
+                          if (res) setSelectedResidence(res);
+                        }
                       }}
                       className="clay-input w-full appearance-none bg-white cursor-pointer py-2 px-3 text-sm"
                     >
@@ -284,7 +323,36 @@ export function Order() {
                           {res.name} ({(res.distanceKm).toFixed(1)} km)
                         </option>
                       ))}
+                      <option value="custom">📍 Custom Location...</option>
                     </select>
+                    
+                    {isCustomLocation && (
+                      <div className="mt-2 space-y-2 bg-brand-bg/50 p-3 rounded-lg border">
+                        <label className="text-[11px] font-bold text-brand-muted">Enter Address or Res Name</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text"
+                            placeholder="e.g. Braamfontein Gate"
+                            className="clay-input flex-1 py-1.5 px-2 text-sm"
+                            value={customAddress}
+                            onChange={e => setCustomAddress(e.target.value)}
+                          />
+                          <ClayButton 
+                            variant="secondary" 
+                            className="!p-2 shrink-0 border-slate-200"
+                            onClick={handleGeocode}
+                            disabled={geocoding || !customAddress}
+                          >
+                            <Search size={16} />
+                          </ClayButton>
+                        </div>
+                        {deliveryCoords && (
+                          <div className="text-[10px] font-semibold text-green-600 flex items-center gap-1">
+                            <MapPin size={12} /> Location mapped successfully
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Calculations */}

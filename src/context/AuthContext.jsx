@@ -10,7 +10,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  deleteUser
 } from 'firebase/auth';
 import { 
   doc, 
@@ -18,7 +19,8 @@ import {
   setDoc, 
   updateDoc, 
   collection, 
-  onSnapshot 
+  onSnapshot,
+  deleteDoc
 } from 'firebase/firestore';
 
 const AuthContext = createContext();
@@ -367,10 +369,63 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateUserProfile = async (userId, data) => {
+    if (isFirebaseEnabled) {
+      try {
+        await updateDoc(doc(db, 'users', userId), data);
+        if (user && user.id === userId) {
+          setUser(prev => ({ ...prev, ...data }));
+        }
+        toast.success('Profile updated successfully');
+        return true;
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to update profile.');
+        return false;
+      }
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+      if (user && user.id === userId) {
+        setUser(prev => ({ ...prev, ...data }));
+      }
+      toast.success('Profile updated locally');
+      return true;
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (isFirebaseEnabled && auth.currentUser) {
+      try {
+        const uid = auth.currentUser.uid;
+        // Delete Firestore document first
+        await deleteDoc(doc(db, 'users', uid));
+        // Delete Auth user
+        await deleteUser(auth.currentUser);
+        setUser(null);
+        toast.success('Account permanently deleted');
+        return true;
+      } catch (err) {
+        console.error(err);
+        if (err.code === 'auth/requires-recent-login') {
+          toast.error('Please log out and log back in to delete your account for security reasons.');
+        } else {
+          toast.error('Failed to delete account.');
+        }
+        return false;
+      }
+    } else if (!isFirebaseEnabled) {
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      setUser(null);
+      toast.success('Account permanently deleted (local)');
+      return true;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, users, login, logout, registerCustomer, loading,
-      runnerApplications, applyAsRunner, approveRunner, rejectRunner, toggleRunnerStatus 
+      runnerApplications, applyAsRunner, approveRunner, rejectRunner, toggleRunnerStatus,
+      updateUserProfile, deleteAccount
     }}>
       {!loading && children}
     </AuthContext.Provider>
