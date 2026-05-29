@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useOrder } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
-import { storage } from '../firebase/config';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { ClayCard } from '../components/ui/ClayCard';
 import { ClayButton } from '../components/ui/ClayButton';
-import { Landmark, UploadCloud, CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Landmark, MessageCircle, CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function Checkout() {
@@ -15,66 +13,26 @@ export function Checkout() {
   const { orders, updateOrderStatus } = useOrder();
   const { users } = useAuth();
   const [popFile, setPopFile] = useState(null);
-  const [popFileName, setPopFileName] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
-  const order = orders.find(o => o.id === orderId);
-
-  const handleFileChange = (e) => {
-    const files = e.target.files;
-    if (files.length > 0) {
-      setPopFile(files[0]);
-      setPopFileName(files[0].name);
-      toast.success('Proof of payment attached!');
-    }
-  };
-
-  const handleSubmitPOP = async (e) => {
+  const handleSubmitPOP = (e) => {
     e.preventDefault();
-    if (!popFile) {
-      toast.error('Please upload your proof of payment.');
-      return;
-    }
-
     setSubmitting(true);
     
-    try {
-      if (storage) {
-        const storageRef = ref(storage, `receipts/${orderId}_${popFile.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, popFile);
+    // The admin's WhatsApp number (make sure to include country code without '+')
+    // TODO: You can update this to your actual phone number later
+    const adminWhatsApp = "27612345678"; 
+    
+    const message = `Hi, here is my Proof of Payment for order *${order.id}*.\n\nDelivery to: ${order.residence}\nTotal: R${order.pricing.total.toFixed(2)}`;
+    const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(message)}`;
 
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(progress);
-          },
-          (error) => {
-            console.error('Upload failed:', error);
-            toast.error('Failed to upload receipt');
-            setSubmitting(false);
-          },
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            await updateOrderStatus(orderId, 'pending_runner', { popUrl: downloadURL });
-            setSubmitting(false);
-            navigate('/track');
-          }
-        );
-      } else {
-        // Fallback for local simulation
-        setTimeout(() => {
-          updateOrderStatus(orderId, 'pending_runner', { popUrl: 'simulated_local_url' });
-          setSubmitting(false);
-          navigate('/track');
-        }, 1200);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('An error occurred during upload.');
+    // Open WhatsApp in a new tab
+    window.open(whatsappUrl, '_blank');
+
+    // Move order forward in our app
+    setTimeout(() => {
+      updateOrderStatus(orderId, 'pending_runner');
       setSubmitting(false);
-    }
+      navigate('/track');
+    }, 1000);
   };
 
   if (!order) {
@@ -150,22 +108,16 @@ export function Checkout() {
               <h3 className="font-heading font-bold text-lg text-brand-text">Upload Proof</h3>
               
               <form onSubmit={handleSubmitPOP} className="space-y-4">
-                <div className="relative clay-card bg-brand-bg/30 border-dashed border-2 border-slate-300 p-6 text-center cursor-pointer hover:bg-brand-bg transition-colors rounded-[20px] flex flex-col items-center justify-center min-h-[140px]">
-                  <input
-                    type="file"
-                    required
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <UploadCloud className="text-brand-primary mb-2 animate-pulse" size={32} />
-                  <span className="text-xs font-semibold block text-brand-text truncate max-w-full">
-                    {popFileName || 'Drag & drop or click to upload PDF/Image'}
-                  </span>
-                  {uploadProgress > 0 && uploadProgress < 100 && (
-                    <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
-                      <div className="bg-brand-primary h-full" style={{ width: `${uploadProgress}%` }}></div>
-                    </div>
-                  )}
+                <div className="bg-brand-bg/50 p-6 text-center rounded-[20px] border-2 border-green-500/20 space-y-4">
+                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                    <MessageCircle size={32} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-brand-text">Send Proof via WhatsApp</h4>
+                    <p className="text-xs text-brand-muted mt-1">
+                      Click the button below to open WhatsApp and send us a screenshot of your payment. We will verify it immediately!
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-brand-bg p-3.5 rounded-[16px] text-xs text-brand-muted space-y-1.5 border">
@@ -178,10 +130,10 @@ export function Checkout() {
                 <ClayButton 
                   type="submit" 
                   fullWidth 
-                  className="flex gap-2"
+                  className="flex gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white border-b-[#128C7E]"
                   disabled={submitting}
                 >
-                  {submitting ? 'Uploading...' : 'Submit POP'} <ChevronRight size={18} />
+                  {submitting ? 'Redirecting...' : 'Open WhatsApp'} <ChevronRight size={18} />
                 </ClayButton>
               </form>
             </ClayCard>
