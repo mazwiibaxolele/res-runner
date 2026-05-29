@@ -99,7 +99,7 @@ export function Order() {
   // Pricing calculations
   const fees = calculateTotal();
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!user) {
       toast.error('Please log in to place an order.');
       navigate('/login');
@@ -116,7 +116,7 @@ export function Order() {
       return;
     }
 
-    const orderId = placeOrder({
+    const orderId = await placeOrder({
       customerName: user.name,
       customerEmail: user.email,
       residence: isCustomLocation ? customAddress : selectedResidence.name,
@@ -126,7 +126,9 @@ export function Order() {
       pricing: fees,
     });
 
-    navigate(`/checkout/${orderId}`);
+    if (orderId) {
+      navigate(`/checkout/${orderId}`);
+    }
   };
 
   return (
